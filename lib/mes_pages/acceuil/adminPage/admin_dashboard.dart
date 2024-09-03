@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'inscription.dart';
+
 class AdminDashboard extends StatefulWidget {
   @override
   _AdminDashboardState createState() => _AdminDashboardState();
@@ -69,6 +71,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ElevatedButton(
                       onPressed: () {
                         // Navigate to users list page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Inscription(),
+                          ),
+                        );
                       },
                       child: Text('Voir la liste des Utilisateurs'),
                       style: ElevatedButton.styleFrom(

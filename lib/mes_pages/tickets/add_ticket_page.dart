@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AddFormPage extends StatefulWidget {
   @override
@@ -9,7 +11,7 @@ class _AddFormPageState extends State<AddFormPage> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedFormation;
   String? _selectedCategory;
-
+  String? _description;
   final List<String> _formations = [
     'DevWeb et Mobile',
     'Java',
@@ -17,13 +19,57 @@ class _AddFormPageState extends State<AddFormPage> {
     'Backend',
     'Flutter',
     'CMS',
-    'Robotique'
+    'Robotique',
+    'Autre'
   ];
 
   final List<String> _categories = [
     'Technique',
     'Pédagogique'
   ];
+
+  Future<void> _submitForm() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      _formKey.currentState?.save();
+
+      try {
+        // Récupérer l'utilisateur actuellement connecté
+        User? utilisateurs = FirebaseAuth.instance.currentUser;
+        String? utilisateurId = utilisateurs?.uid;
+
+        // Vérifier que l'utilisateur est connecté
+        if (utilisateurId != null) {
+          // Ajouter les données à Firestore avec l'ID de l'utilisateur
+          await FirebaseFirestore.instance.collection('tickets').add({
+            'userId': utilisateurId,
+            'formation': _selectedFormation,
+            'categorie': _selectedCategory,
+            'description': _description,
+            'date': Timestamp.now(),
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ticket enregistré avec succès!')),
+          );
+
+          // Réinitialiser le formulaire après l'enregistrement
+          _formKey.currentState?.reset();
+          setState(() {
+            _selectedFormation = null;
+            _selectedCategory = null;
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erreur: utilisateur non connecté.')),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de l\'enregistrement: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,48 +88,6 @@ class _AddFormPageState extends State<AddFormPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Nom et Prénom',
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Veuillez entrer un nom';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  SizedBox(width: 10), // Espace entre les deux colonnes
-                  Expanded(
-                    child: TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Identifiant',
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Veuillez entrer un identifiant';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20), // Espace entre les Rows
               Row(
                 children: [
                   Expanded(
@@ -149,7 +153,7 @@ class _AddFormPageState extends State<AddFormPage> {
                   ),
                 ],
               ),
-              SizedBox(height: 20), // Espace entre les Rows
+              SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(
@@ -163,6 +167,9 @@ class _AddFormPageState extends State<AddFormPage> {
                         ),
                       ),
                       maxLines: 3,
+                      onSaved: (value) {
+                        _description = value;
+                      },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Veuillez entrer une description';
@@ -173,20 +180,19 @@ class _AddFormPageState extends State<AddFormPage> {
                   ),
                 ],
               ),
-              SizedBox(height: 60), // Espace avant le bouton d'enregistrement
+              SizedBox(height: 60),
               ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState?.validate() ?? false) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Enregistrement en cours...')),
-                    );
-                  }
-                },
+                onPressed: _submitForm,
 
-                child: Text('Enregistrer', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),),
+                child: Text(
+                  'Enregistrer',
+                  style: TextStyle(
+                      color: Colors.black, fontWeight: FontWeight.bold),
+                ),
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 20), backgroundColor: Color(0xFF04BBC7),
-                  textStyle: TextStyle(fontSize: 20), // Couleur de fond du bouton
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  backgroundColor: Color(0xFF04BBC7),
+                  textStyle: TextStyle(fontSize: 20),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),

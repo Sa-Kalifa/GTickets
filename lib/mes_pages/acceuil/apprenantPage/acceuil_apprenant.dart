@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../custom_bottom_app_bar.dart';
-import '../adminPage/admin_dashboard.dart';
+import '../../tickets/ticket_page.dart';
 
 class AccueilApprenant extends StatelessWidget {
 
@@ -58,14 +58,21 @@ class AccueilApprenant extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AdminDashboard(),
+                    builder: (context) => TicketPage(),
                   ),
                 );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color(0xFF04BBC7), // Couleur du bouton
               ),
-              child: Text('Ajouter Ticket'),
+              child: const Text(
+                'Ajouter Ticket',
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold
+                ),
+              ),
             ),
           ),
         ],

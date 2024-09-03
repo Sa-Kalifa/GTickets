@@ -12,8 +12,13 @@ import 'mes_pages/tickets/ticket_page.dart';
 void main() async {
  WidgetsFlutterBinding.ensureInitialized();
  await Firebase.initializeApp(
-   options: DefaultFirebaseOptions.currentPlatform,
- );
+   options: const FirebaseOptions(apiKey: "AIzaSyByvGC7AcGYrIfpIdx5KZrob0Bum7zAVsM",
+     authDomain: "gestionticket-9d01f.firebaseapp.com",
+     projectId: "gestionticket-9d01f",
+     storageBucket: "gestionticket-9d01f.appspot.com",
+     messagingSenderId: "353042503516",
+     appId: "1:353042503516:web:b6a3a99abdcb2c47b5d399"
+   ),);
 
  runApp(const MyApp());
 }
@@ -34,7 +39,6 @@ class MyApp extends StatelessWidget {
         '/ticket': (context) => TicketPage(),
         '/notification': (context) => NotificationPage(),
         '/profile': (context) => ProfilePage(),
-        '/admin' : (context) => AdminDashboard(),
       },
     );
   }

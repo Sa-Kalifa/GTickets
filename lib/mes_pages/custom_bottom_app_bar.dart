@@ -16,7 +16,7 @@ class CustomBottomAppBar extends StatelessWidget {
             icon: Icon(Icons.home),
             color: currentIndex == 0 ? Color(0xFF04BBC7) : Colors.black,
             onPressed: () {
-              Navigator.pushNamed(context, '/accueil');
+              Navigator.pushNamed(context, '/apprenant');
             },
           ),
           IconButton(

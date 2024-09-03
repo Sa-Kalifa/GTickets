@@ -1,7 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gestion_tickets/mes_pages/acceuil/apprenantPage/acceuil_apprenant.dart';
 import 'package:gestion_tickets/mes_pages/authentification/input_connexion.dart';
 import 'package:gestion_tickets/mes_pages/authentification/my_boutton.dart';
+import '../acceuil/adminPage/admin_dashboard.dart';
+import '../acceuil/formateurPage/acceuil_formateur.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -41,9 +45,12 @@ class _LoginPageState extends State<LoginPage> {
         email: emailcontroller.text.trim(),
         password: passwordcontroller.text.trim(),
       );
-      Navigator.pop(context);
+
+      // Appel de la méthode pour gérer les rôles après la connexion réussie
+      RoleManager().RoleUser(context);
+
     } on FirebaseAuthException catch (e) {
-      // arret de la fenetre de chargement
+      // Arrêt de la fenêtre de chargement
       Navigator.pop(context);
       // Gérer l'erreur ici
       if (e.code == 'user-not-found') {
@@ -54,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // Les Methodes de Message d'erreur
+  // Les Méthodes de Message d'erreur
   // Email
   void emailMessage(BuildContext context) {
     showDialog(
@@ -160,5 +167,81 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+}
+
+// ******************** La gestion de Role **********************************
+
+class RoleManager {
+  // Méthode qui gère les rôles des utilisateurs
+  void RoleUser(BuildContext context) async {
+    try {
+      User? currentUser = FirebaseAuth.instance.currentUser;
+
+      if (currentUser != null) {
+        DocumentSnapshot snapshot = await FirebaseFirestore.instance
+            .collection('utilisateurs')
+            .doc(currentUser.uid)
+            .get();
+
+        if (snapshot.exists) {
+          final role = snapshot['role'];
+          print("Rôle trouvé: $role");
+
+          if (role == 'Admin') {
+            print("Redirection vers AdminDashboard");
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => AdminDashboard()),
+            );
+          } else if (role == 'Formateur') {
+            print("Redirection vers AccueilFormateur");
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => AccueilFormateur()),
+            );
+          } else if (role == 'Apprenant') {
+            print("Redirection vers AccueilApprenant");
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => AccueilApprenant()),
+            );
+          } else {
+            print("Rôle inconnu. Redirection vers LoginPage");
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            );
+          }
+        } else {
+          print("Document utilisateur non trouvé. Redirection vers LoginPage");
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) =>  AccueilFormateur()),
+          );
+        }
+      } else {
+        print("Utilisateur non authentifié. Redirection vers LoginPage");
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+        );
+      }
+    } catch (e) {
+      print("Erreur lors de la récupération du rôle: $e");
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    }
+  }
+
+
+  // Fonction pour enregistrer un utilisateur avec un rôle
+  Future<void> registerUser(String email, String password, String role) async {
+    UserCredential userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password);
+
+    // Ajouter un document utilisateur avec le rôle dans Firestore
+    await FirebaseFirestore.instance
+        .collection('utilisateur')
+        .doc(userCredential.user!.uid)
+        .set({
+      'email': email,
+      'role': role,
+    });
   }
 }
