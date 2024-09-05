@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class EditProfilePage extends StatefulWidget {
   @override
@@ -7,10 +9,60 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
-  String _nom = '';
-  String _prenom = '';
+  String _nomPrenom = '';
+  String _module = '';
   String _adresse = '';
-  String _tel = '';
+  String _email = '';
+  String _telephone = '';
+
+  Future<void> _submitForm() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      _formKey.currentState?.save();
+
+      try {
+        // Récupérer l'utilisateur actuellement connecté
+        User? utilisateur = FirebaseAuth.instance.currentUser;
+        String? utilisateurId = utilisateur?.uid;
+
+        // Vérifier que l'utilisateur est connecté
+        if (utilisateurId != null) {
+          // Mettre à jour les informations de l'utilisateur dans Firestore
+          await FirebaseFirestore.instance
+              .collection('utilisateurs')
+              .doc(utilisateurId)
+              .update({
+            'nom_prenom': _nomPrenom,
+            'module': _module,
+            'adresse': _adresse,
+            'email': _email,
+            'telephone': _telephone,
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Informations mises à jour avec succès!')),
+          );
+
+          // Réinitialiser le formulaire après la mise à jour
+          _formKey.currentState?.reset();
+          setState(() {
+            _nomPrenom = '';
+            _module = '';
+            _adresse = '';
+            _email = '';
+            _telephone = '';
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erreur: utilisateur non connecté.')),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de la mise à jour: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,48 +91,111 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(40.0),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextFormField(
-                      decoration: InputDecoration(labelText: 'Nom'),
-                      initialValue: _nom,
-                      onChanged: (value) => setState(() => _nom = value),
-                      validator: (value) => value!.isEmpty ? 'Veuillez entrer votre nom' : null,
+                    Expanded(
+                      child: TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Nom et Prénom',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        initialValue: _nomPrenom,
+                        onChanged: (value) => setState(() => _nomPrenom = value),
+                        validator: (value) =>
+                        value!.isEmpty ? 'Veuillez entrer votre nom et prénom' : null,
+                      ),
                     ),
-                    TextFormField(
-                      decoration: InputDecoration(labelText: 'Prénom'),
-                      initialValue: _prenom,
-                      onChanged: (value) => setState(() => _prenom = value),
-                      validator: (value) => value!.isEmpty ? 'Veuillez entrer votre prénom' : null,
+                    SizedBox(height: 16),
+                    Expanded(
+                      child: TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Module',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        initialValue: _module,
+                        onChanged: (value) => setState(() => _module = value),
+                        validator: (value) =>
+                        value!.isEmpty ? 'Veuillez entrer votre module' : null,
+                      ),
                     ),
-                    TextFormField(
-                      decoration: InputDecoration(labelText: 'Adresse'),
-                      initialValue: _adresse,
-                      onChanged: (value) => setState(() => _adresse = value),
-                      validator: (value) => value!.isEmpty ? 'Veuillez entrer votre adresse' : null,
+                    SizedBox(height: 16),
+                    Expanded(
+                      child: TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Adresse',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        initialValue: _adresse,
+                        onChanged: (value) => setState(() => _adresse = value),
+                        validator: (value) =>
+                        value!.isEmpty ? 'Veuillez entrer votre adresse' : null,
+                      ),
                     ),
-                    TextFormField(
-                      decoration: InputDecoration(labelText: 'Téléphone'),
-                      initialValue: _tel,
-                      onChanged: (value) => setState(() => _tel = value),
-                      validator: (value) => value!.isEmpty ? 'Veuillez entrer votre numéro de téléphone' : null,
+                    SizedBox(height: 16),
+                    Expanded(
+                      child: TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        initialValue: _email,
+                        onChanged: (value) => setState(() => _email = value),
+                        validator: (value) =>
+                        value!.isEmpty ? 'Veuillez entrer votre email' : null,
+                      ),
                     ),
+                    SizedBox(height: 16),
+                    Expanded(
+                      child: TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Téléphone',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        initialValue: _telephone,
+                        onChanged: (value) => setState(() => _telephone = value),
+                        validator: (value) =>
+                        value!.isEmpty ? 'Veuillez entrer votre numéro de téléphone' : null,
+                      ),
+                    ),
+
                     const SizedBox(height: 32),
                     Center(
                       child: ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            // Enregistrez les modifications
-                          }
-                        },
+                        onPressed: _submitForm,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF04BBC7), // Couleur du bouton
                         ),
-                        child: Text('Enregistrer'),
+                        child: const Text(
+                          'Enregistrer',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                              color: Colors.black),
+                        ),
                       ),
                     ),
                   ],

@@ -41,16 +41,65 @@ class AccueilApprenant extends StatelessWidget {
               style: TextStyle(fontSize: 24, color: Colors.black),
             ),
           ),
+
           Expanded(
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                Image.network('https://via.placeholder.com/150'),
-                Image.network('https://via.placeholder.com/150'),
-                Image.network('https://via.placeholder.com/150'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Container(
+                    width: 400,
+                    height: 120,
+                    child: Image.asset('lib/images/odc1.jpg', fit: BoxFit.cover),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Container(
+                    width: 400,
+                    height: 120,
+                    child: Image.asset('lib/images/odc2.jpg', fit: BoxFit.cover),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Container(
+                    width: 400,
+                    height: 120,
+                    child: Image.asset('lib/images/ODC.jpg', fit: BoxFit.cover),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Container(
+                    width: 400,
+                    height: 120,
+                    child: Image.asset('lib/images/AT.png', fit: BoxFit.cover),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Container(
+                    width: 400,
+                    height: 120,
+                    child: Image.asset('lib/images/T.png', fit: BoxFit.cover),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Container(
+                    width: 400,
+                    height: 120,
+                    child: Image.asset('lib/images/TR.png', fit: BoxFit.cover),
+                  ),
+                ),
               ],
             ),
           ),
+
+
+
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(

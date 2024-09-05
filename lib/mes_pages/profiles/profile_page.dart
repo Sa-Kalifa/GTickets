@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../authentification/login_page.dart';
 import '../custom_bottom_app_bar.dart';
 import 'edit_profile_page.dart';
 
@@ -49,18 +50,18 @@ class ProfilePage extends StatelessWidget {
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.person, color: Color(0xFF04BBC7)),
-              title: const Text('Utilisateur'),
-              onTap: () {
-                _showUserTypeDialog(context);
-              },
-            ),
+
             ListTile(
               leading: const Icon(Icons.logout, color: Color(0xFF04BBC7)),
               title: const Text('Se Déconnecter'),
               onTap: () {
                 // Ajoutez ici la logique de déconnexion
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                    builder: (context) => LoginPage(),
+                ),
+                );
               },
             ),
           ],

@@ -3,6 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AddFormPage extends StatefulWidget {
+  final String? ticketId; // Ajouter un paramètre optionnel pour le ticketId
+
+  AddFormPage({this.ticketId}); // Modifier le constructeur pour accepter un ticketId
+
   @override
   _AddFormPageState createState() => _AddFormPageState();
 }
@@ -22,42 +26,96 @@ class _AddFormPageState extends State<AddFormPage> {
     'Robotique',
     'Autre'
   ];
-
   final List<String> _categories = [
     'Technique',
     'Pédagogique'
   ];
+  bool _isLoading = false; // Indique si les données du ticket sont en cours de chargement
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.ticketId != null) {
+      _loadTicketData(); // Charger les données du ticket si un ticketId est fourni
+    }
+  }
+
+  // Fonction pour charger les données du ticket à partir de Firestore
+  Future<void> _loadTicketData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('tickets')
+          .doc(widget.ticketId)
+          .get();
+
+      if (doc.exists) {
+        setState(() {
+          _selectedFormation = doc['formation'];
+          _selectedCategory = doc['categorie'];
+          _description = doc['description'];
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ticket introuvable.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors du chargement du ticket: $e')),
+      );
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
 
   Future<void> _submitForm() async {
     if (_formKey.currentState?.validate() ?? false) {
       _formKey.currentState?.save();
 
       try {
-        // Récupérer l'utilisateur actuellement connecté
         User? utilisateurs = FirebaseAuth.instance.currentUser;
         String? utilisateurId = utilisateurs?.uid;
 
-        // Vérifier que l'utilisateur est connecté
         if (utilisateurId != null) {
-          // Ajouter les données à Firestore avec l'ID de l'utilisateur
-          await FirebaseFirestore.instance.collection('tickets').add({
-            'userId': utilisateurId,
-            'formation': _selectedFormation,
-            'categorie': _selectedCategory,
-            'description': _description,
-            'date': Timestamp.now(),
-          });
+          if (widget.ticketId == null) {
+            // Créer un nouveau ticket
+            DocumentReference docRef = await FirebaseFirestore.instance
+                .collection('tickets')
+                .add({
+              'userId': utilisateurId,
+              'formation': _selectedFormation,
+              'categorie': _selectedCategory,
+              'description': _description,
+              'date': Timestamp.now(),
+            });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ticket enregistré avec succès!')),
-          );
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Ticket enregistré avec succès!')),
+            );
+          } else {
+            // Mettre à jour un ticket existant
+            await FirebaseFirestore.instance
+                .collection('tickets')
+                .doc(widget.ticketId)
+                .update({
+              'formation': _selectedFormation,
+              'categorie': _selectedCategory,
+              'description': _description,
+              'date': Timestamp.now(),
+            });
 
-          // Réinitialiser le formulaire après l'enregistrement
-          _formKey.currentState?.reset();
-          setState(() {
-            _selectedFormation = null;
-            _selectedCategory = null;
-          });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Ticket modifié avec succès!')),
+            );
+          }
+
+          Navigator.pop(context);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Erreur: utilisateur non connecté.')),
@@ -75,13 +133,15 @@ class _AddFormPageState extends State<AddFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Ajouter ticket',
+        title: const Text(
+          'Ajouter / Modifier ticket',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
-      body: Padding(
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator()) // Afficher un loader pendant le chargement des données
+          : Padding(
         padding: const EdgeInsets.all(80.0),
         child: Form(
           key: _formKey,
@@ -167,6 +227,7 @@ class _AddFormPageState extends State<AddFormPage> {
                         ),
                       ),
                       maxLines: 3,
+                      initialValue: _description, // Charger la description
                       onSaved: (value) {
                         _description = value;
                       },
@@ -183,7 +244,6 @@ class _AddFormPageState extends State<AddFormPage> {
               SizedBox(height: 60),
               ElevatedButton(
                 onPressed: _submitForm,
-
                 child: Text(
                   'Enregistrer',
                   style: TextStyle(
