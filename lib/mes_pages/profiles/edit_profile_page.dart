@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'profile_page.dart'; // Import de ProfilePage
 
 class EditProfilePage extends StatefulWidget {
   @override
@@ -9,48 +10,115 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
-  String _nomPrenom = '';
-  String _module = '';
-  String _adresse = '';
-  String _email = '';
-  String _telephone = '';
 
+  // Déclaration des TextEditingControllers
+  final TextEditingController _nomPrenomController = TextEditingController();
+  final TextEditingController _moduleController = TextEditingController();
+  final TextEditingController _adresseController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _telephoneController = TextEditingController();
+
+  bool _isLoading = true; // Indicateur de chargement
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); // Charger les données de l'utilisateur connecté
+  }
+
+  @override
+  void dispose() {
+    // Dispose des contrôleurs pour éviter les fuites de mémoire
+    _nomPrenomController.dispose();
+    _moduleController.dispose();
+    _adresseController.dispose();
+    _emailController.dispose();
+    _telephoneController.dispose();
+    super.dispose();
+  }
+
+  // Charger les données de l'utilisateur connecté depuis Firestore
+  Future<void> _loadUserData() async {
+    User? utilisateur = FirebaseAuth.instance.currentUser;
+    String? utilisateurId = utilisateur?.uid;
+
+    if (utilisateurId != null) {
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('utilisateurs')
+            .doc(utilisateurId)
+            .get();
+
+        if (userDoc.exists) {
+          setState(() {
+            _nomPrenomController.text = userDoc['nom_prenom'] ?? '';
+            _moduleController.text = userDoc['module'] ?? '';
+            _adresseController.text = userDoc['adresse'] ?? '';
+            _emailController.text = userDoc['email'] ?? '';
+            _telephoneController.text = userDoc['telephone'] ?? '';
+            _isLoading = false; // Données chargées
+          });
+        } else {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Aucune donnée trouvée pour cet utilisateur.')),
+          );
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de la récupération des données: $e')),
+        );
+      }
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: utilisateur non connecté.')),
+      );
+    }
+  }
+
+  // Enregistrer les modifications dans Firestore
   Future<void> _submitForm() async {
     if (_formKey.currentState?.validate() ?? false) {
-      _formKey.currentState?.save();
+      // Sauvegarder les valeurs des contrôleurs
+      String nomPrenom = _nomPrenomController.text.trim();
+      String module = _moduleController.text.trim();
+      String adresse = _adresseController.text.trim();
+      String email = _emailController.text.trim();
+      String telephone = _telephoneController.text.trim();
 
       try {
-        // Récupérer l'utilisateur actuellement connecté
         User? utilisateur = FirebaseAuth.instance.currentUser;
         String? utilisateurId = utilisateur?.uid;
 
-        // Vérifier que l'utilisateur est connecté
         if (utilisateurId != null) {
-          // Mettre à jour les informations de l'utilisateur dans Firestore
           await FirebaseFirestore.instance
               .collection('utilisateurs')
               .doc(utilisateurId)
               .update({
-            'nom_prenom': _nomPrenom,
-            'module': _module,
-            'adresse': _adresse,
-            'email': _email,
-            'telephone': _telephone,
+            'nom_prenom': nomPrenom,
+            'module': module,
+            'adresse': adresse,
+            'email': email,
+            'telephone': telephone,
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Informations mises à jour avec succès!')),
           );
 
-          // Réinitialiser le formulaire après la mise à jour
-          _formKey.currentState?.reset();
-          setState(() {
-            _nomPrenom = '';
-            _module = '';
-            _adresse = '';
-            _email = '';
-            _telephone = '';
-          });
+          // Retourner à la page ProfilePage et rafraîchir
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => ProfilePage()),
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Erreur: utilisateur non connecté.')),
@@ -68,142 +136,138 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFF3F5F6),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, color: Colors.black),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+      appBar: AppBar(
+        title: const Text(
+          'Modifier Compte',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator()) // Indicateur de chargement
+          : SingleChildScrollView(
+        padding: const EdgeInsets.all(40.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Champ Nom et Prénom
+              TextFormField(
+                controller: _nomPrenomController,
+                decoration: InputDecoration(
+                  labelText: 'Nom et Prénom',
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                SizedBox(width: 8),
-                const Text(
-                  'Modifier Compte',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                validator: (value) =>
+                value == null || value.trim().isEmpty ? 'Veuillez entrer votre nom et prénom' : null,
+              ),
+              SizedBox(height: 16),
+              // Champ Module
+              TextFormField(
+                controller: _moduleController,
+                decoration: InputDecoration(
+                  labelText: 'Module',
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(40.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Nom et Prénom',
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        initialValue: _nomPrenom,
-                        onChanged: (value) => setState(() => _nomPrenom = value),
-                        validator: (value) =>
-                        value!.isEmpty ? 'Veuillez entrer votre nom et prénom' : null,
-                      ),
+                validator: (value) =>
+                value == null || value.trim().isEmpty ? 'Veuillez entrer votre module' : null,
+              ),
+              SizedBox(height: 16),
+              // Champ Adresse
+              TextFormField(
+                controller: _adresseController,
+                decoration: InputDecoration(
+                  labelText: 'Adresse',
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                validator: (value) =>
+                value == null || value.trim().isEmpty ? 'Veuillez entrer votre adresse' : null,
+              ),
+              SizedBox(height: 16),
+              // Champ Email
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Veuillez entrer votre email';
+                  }
+                  // Validation simple de l'email
+                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
+                    return 'Veuillez entrer un email valide';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+              // Champ Téléphone
+              TextFormField(
+                controller: _telephoneController,
+                decoration: InputDecoration(
+                  labelText: 'Téléphone',
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                keyboardType: TextInputType.phone,
+                validator: (value) =>
+                value == null || value.trim().isEmpty ? 'Veuillez entrer votre numéro de téléphone' : null,
+              ),
+              SizedBox(height: 32),
+              // Bouton Enregistrer
+              Center(
+                child: ElevatedButton(
+                  onPressed: _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF04BBC7), // Couleur du bouton
+                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    SizedBox(height: 16),
-                    Expanded(
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Module',
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        initialValue: _module,
-                        onChanged: (value) => setState(() => _module = value),
-                        validator: (value) =>
-                        value!.isEmpty ? 'Veuillez entrer votre module' : null,
-                      ),
+                  ),
+                  child: const Text(
+                    'Enregistrer',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Colors.black,
                     ),
-                    SizedBox(height: 16),
-                    Expanded(
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Adresse',
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        initialValue: _adresse,
-                        onChanged: (value) => setState(() => _adresse = value),
-                        validator: (value) =>
-                        value!.isEmpty ? 'Veuillez entrer votre adresse' : null,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    Expanded(
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        initialValue: _email,
-                        onChanged: (value) => setState(() => _email = value),
-                        validator: (value) =>
-                        value!.isEmpty ? 'Veuillez entrer votre email' : null,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    Expanded(
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Téléphone',
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        initialValue: _telephone,
-                        onChanged: (value) => setState(() => _telephone = value),
-                        validator: (value) =>
-                        value!.isEmpty ? 'Veuillez entrer votre numéro de téléphone' : null,
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: _submitForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF04BBC7), // Couleur du bouton
-                        ),
-                        child: const Text(
-                          'Enregistrer',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                              color: Colors.black),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

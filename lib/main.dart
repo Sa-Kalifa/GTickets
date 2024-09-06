@@ -39,6 +39,7 @@ class MyApp extends StatelessWidget {
         '/ticket': (context) => TicketPage(),
         '/notification': (context) => NotificationPage(),
         '/profile': (context) => ProfilePage(),
+        '/login': (context) => LoginPage(),
       },
     );
   }

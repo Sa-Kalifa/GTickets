@@ -1,19 +1,65 @@
 import 'package:flutter/material.dart';
-import '../authentification/login_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../custom_bottom_app_bar.dart';
 import 'edit_profile_page.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
+  @override
+  _ProfilePageState createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  User? currentUser;
+  String userName = 'Inconnu'; // Placeholder par défaut
+  String userRole = 'Inconnu'; // Placeholder par défaut
+
+  @override
+  void initState() {
+    super.initState();
+    _getUserData();
+  }
+
+  // Récupérer les données de l'utilisateur connecté depuis Firestore
+  Future<void> _getUserData() async {
+    currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      try {
+        // Requête Firestore pour récupérer les données de l'utilisateur
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('utilisateurs') // Collection: utilisateurs
+            .doc(currentUser!.uid) // ID de l'utilisateur connecté
+            .get();
+
+        if (userDoc.exists) {
+          setState(() {
+            userName = userDoc['nom_prenom']; // Nom de l'utilisateur
+            userRole = userDoc['role']; // Rôle de l'utilisateur
+          });
+        }
+      } catch (e) {
+        print('Erreur lors de la récupération des données: $e');
+      }
+    }
+  }
+
+
+  // Déconnexion de l'utilisateur
+  void _signOut() async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (Route<dynamic> route) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF3F5F6),
+      backgroundColor: const Color(0xFFF3F5F6),
       appBar: AppBar(
-        title: Text('Profil', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30)),
+        title: const Text('Profil', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true, // Centre le titre
-        leading: SizedBox.shrink(), // Retire l'icône de retour
+        centerTitle: true,
+        leading: const SizedBox.shrink(), // Retire l'icône de retour
       ),
       body: Padding(
         padding: const EdgeInsets.all(40.0),
@@ -26,17 +72,19 @@ class ProfilePage extends StatelessWidget {
                 backgroundImage: NetworkImage('https://via.placeholder.com/100'), // Image de l'utilisateur
               ),
             ),
-            SizedBox(height: 16),
-            const Center(
+            const SizedBox(height: 16),
+            // Affichage du nom récupéré de Firestore
+            Center(
               child: Text(
-                'Nom Prénom',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                userName,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
-            const Center(
+            // Affichage du rôle récupéré de Firestore
+            Center(
               child: Text(
-                'ID: 123456',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                'Rôle: $userRole',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
             ),
             const SizedBox(height: 32),
@@ -50,47 +98,18 @@ class ProfilePage extends StatelessWidget {
                 );
               },
             ),
-
             ListTile(
               leading: const Icon(Icons.logout, color: Color(0xFF04BBC7)),
               title: const Text('Se Déconnecter'),
               onTap: () {
-                // Ajoutez ici la logique de déconnexion
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                    builder: (context) => LoginPage(),
-                ),
-                );
+                _signOut();
+
               },
             ),
           ],
         ),
       ),
       bottomNavigationBar: CustomBottomAppBar(currentIndex: 3), // Page Profile
-    );
-  }
-
-  void _showUserTypeDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Sélectionner le type d'utilisateur"),
-          content: DropdownButtonFormField<String>(
-            items: const [
-              DropdownMenuItem(value: 'Admin', child: Text('Admin')),
-              DropdownMenuItem(value: 'Formateur', child: Text('Formateur')),
-              DropdownMenuItem(value: 'Apprenant', child: Text('Apprenant')),
-            ],
-            onChanged: (value) {
-              // Gestion de la sélection
-              Navigator.pop(context);
-            },
-            hint: Text('Sélectionner un type'),
-          ),
-        );
-      },
     );
   }
 }

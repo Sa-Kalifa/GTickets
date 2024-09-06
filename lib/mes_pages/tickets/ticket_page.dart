@@ -15,7 +15,6 @@ class _TicketPageState extends State<TicketPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String? currentUserRole;
   String? currentUserId;
-  String? currentUserNom;
 
   @override
   void initState() {
@@ -34,7 +33,6 @@ class _TicketPageState extends State<TicketPage> {
         if (userDoc.exists && userDoc.data() != null) {
           setState(() {
             currentUserRole = userDoc.get('role');
-            currentUserNom = userDoc.get('nom_prenom');
           });
         } else {
           print("L'utilisateur n'a pas de rôle défini dans Firestore.");
